@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"sort"
 )
 
@@ -63,9 +64,7 @@ func (p Properties) ProcessData() {
 
 			if nodeData["type"] == "rsa_cert_credentials" {
 				var buf bytes.Buffer
-				buf.WriteString("    value: \n")
-				buf.WriteString("      private_key_pem: \n")
-				buf.WriteString("      cert_pem: \n")
+				buf = handleCert(4, "value: \n", buf)
 				WriteContents(file, buf.String())
 			} else if nodeData["type"] == "secret" {
 				var buf bytes.Buffer
@@ -78,64 +77,111 @@ func (p Properties) ProcessData() {
 				buf.WriteString("      identity: \n")
 				buf.WriteString("      password: \n")
 				WriteContents(file, buf.String())
+			} else if nodeData["type"] == "multi_select_options" {
+				var buf bytes.Buffer
+				buf = handleMultiSelectOptions(nodeData)
+				WriteContents(file, buf.String())
 			} else if nodeData["type"] == "collection" {
 				var buf bytes.Buffer
-				value := nodeData["value"].([]interface{})
-
-				buf.WriteString("    value: \n")
-				arrayAdded := false
-
-				for _, item := range value {
-					for innerKey, innerVal := range item.(map[string]interface{}) {
-						typeAssertedInnerValue := innerVal.(map[string]interface{})
-						innerValueType := typeAssertedInnerValue["type"]
-						var s string
-						if !arrayAdded {
-							if innerValueType == "rsa_cert_credentials" {
-								s = fmt.Sprintf("    - %s:\n", innerKey)
-								buf.WriteString(s)
-								buf.WriteString("        private_key_pem: \n")
-								buf.WriteString("        cert_pem: \n")
-							} else if innerValueType == "secret" {
-								s = fmt.Sprintf("    - %s:\n", innerKey)
-								buf.WriteString(s)
-								buf.WriteString("        secret: \n")
-								WriteContents(file, buf.String())
-							} else {
-								s = fmt.Sprintf("    - %s: %v \n", innerKey, typeAssertedInnerValue["value"])
-								buf.WriteString(s)
-							}
-							arrayAdded = true
-						} else {
-							if innerValueType == "rsa_cert_credentials" {
-								s = fmt.Sprintf("      %s:\n", innerKey)
-								buf.WriteString(s)
-								buf.WriteString("        private_key_pem: \n")
-								buf.WriteString("        cert_pem: \n")
-							} else if innerValueType == "secret" {
-								s = fmt.Sprintf("      %s:\n", innerKey)
-								buf.WriteString(s)
-								buf.WriteString("        secret: \n")
-								WriteContents(file, buf.String())
-							} else {
-								s = fmt.Sprintf("      %s: %v \n", innerKey, typeAssertedInnerValue["value"])
-								buf.WriteString(s)
-							}
-						}
-					}
-					arrayAdded = false
-				}
+				buf = handleCollections(nodeData)
 				WriteContents(file, buf.String())
 			} else {
 				var s string
 				value := nodeData["value"]
 				if value != nil {
-					s = fmt.Sprintf("    value: %v\n", value)
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value)
 				} else {
-					s = fmt.Sprintf("    value: \n")
+					s = fmt.Sprintf("%svalue: \n", getPaddedString(4))
 				}
 				WriteContents(file, s)
 			}
 		}
 	}
+}
+
+func handleCert(padding int, firstLine string, buf bytes.Buffer) bytes.Buffer {
+	s := getPaddedString(padding) + firstLine
+	buf.WriteString(s)
+
+	paddedString := getPaddedString(padding + 2)
+	s = paddedString + "private_key_pem: \n"
+	buf.WriteString(s)
+
+	s = paddedString + "cert_pem: \n"
+	buf.WriteString(s)
+
+	return buf
+}
+
+func handleMultiSelectOptions(nodeData map[string]interface{}) bytes.Buffer {
+	var buf bytes.Buffer
+	buf.WriteString("    value: \n")
+	value := nodeData["value"]
+	valueType := reflect.TypeOf(value)
+	if valueType != nil {
+		switch valueType.Kind() {
+		case reflect.Slice:
+			value := nodeData["value"].([]interface{})
+			for _, item := range value {
+				s := fmt.Sprintf("%s- %s\n", getPaddedString(4), item)
+				buf.WriteString(s)
+			}
+		case reflect.String:
+			s := fmt.Sprintf("%s- %s\n", getPaddedString(4), value)
+			buf.WriteString(s)
+		}
+	}
+	return buf
+}
+
+func handleCollections(nodeData map[string]interface{}) bytes.Buffer {
+	var buf bytes.Buffer
+	value := nodeData["value"].([]interface{})
+
+	buf.WriteString("    value: \n")
+
+	for _, item := range value {
+		arrayAdded := false
+		for innerKey, innerVal := range item.(map[string]interface{}) {
+			typeAssertedInnerValue := innerVal.(map[string]interface{})
+			innerValueType := typeAssertedInnerValue["type"]
+			var s string
+			if !arrayAdded {
+				if innerValueType == "rsa_cert_credentials" {
+					s = fmt.Sprintf("- %s:\n", innerKey)
+					buf = handleCert(4, s, buf)
+				} else if innerValueType == "secret" {
+					s = fmt.Sprintf("%s- %s:\n", getPaddedString(4), innerKey)
+					buf.WriteString(s)
+					buf.WriteString("        secret: \n")
+				} else {
+					s = fmt.Sprintf("%s- %s: %v \n", getPaddedString(4), innerKey, typeAssertedInnerValue["value"])
+					buf.WriteString(s)
+				}
+				arrayAdded = true
+			} else {
+				if innerValueType == "rsa_cert_credentials" {
+					s = fmt.Sprintf("%s:\n", innerKey)
+					buf = handleCert(6, s, buf)
+				} else if innerValueType == "secret" {
+					s = fmt.Sprintf("%s%s:\n", getPaddedString(6), innerKey)
+					buf.WriteString(s)
+					buf.WriteString("        secret: \n")
+				} else {
+					s = fmt.Sprintf("%s%s: %v \n", getPaddedString(6), innerKey, typeAssertedInnerValue["value"])
+					buf.WriteString(s)
+				}
+			}
+		}
+		arrayAdded = false
+	}
+	return buf
+}
+
+func getPaddedString(count int) string {
+	var s string
+	for i := 0; i < count; i++ {
+		s += " "
+	}
+	return s
 }

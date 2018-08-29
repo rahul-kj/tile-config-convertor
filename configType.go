@@ -1,5 +1,5 @@
 package main
 
-type data interface {
+type configType interface {
 	ProcessData()
 }
