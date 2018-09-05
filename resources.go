@@ -45,7 +45,7 @@ func (r Resources) ProcessData() {
 
 	for _, item := range resources {
 		value := item.(map[string]interface{})
-		if value["instance_type_id"] != "" {
+		if int(value["instances_best_fit"].(float64)) != 0 {
 			s := fmt.Sprintf("  %v:\n", value["identifier"])
 			WriteContents(file, s)
 
