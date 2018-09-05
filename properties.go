@@ -85,6 +85,16 @@ func (p Properties) ProcessData() {
 				var buf bytes.Buffer
 				buf = handleCollections(nodeData)
 				WriteContents(file, buf.String())
+			} else if nodeData["type"] == "integer" {
+				var s string
+				value := nodeData["value"]
+				switch value.(type) {
+				case float64:
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), int(value.(float64)))
+				default:
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value)
+				}
+				WriteContents(file, s)
 			} else {
 				var s string
 				value := nodeData["value"]
