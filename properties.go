@@ -91,8 +91,16 @@ func (p Properties) ProcessData() {
 				switch value.(type) {
 				case float64:
 					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), int(value.(float64)))
+				case float32:
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), int(value.(float32)))
+				case int64:
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value.(int64))
+				case int32:
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value.(int32))
+				case int:
+					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value.(int32))
 				default:
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value)
+					s = fmt.Sprintf("%svalue: \n", getPaddedString(4))
 				}
 				WriteContents(file, s)
 			} else {
