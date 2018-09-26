@@ -59,7 +59,15 @@ func (p Properties) ProcessData() {
 		nodeData := node.(map[string]interface{})
 
 		if nodeData["configurable"] == true {
-			s := fmt.Sprintf("  %s:\n", k)
+			s := fmt.Sprintf("  %s:", k)
+			length := len(k)
+			totalPadding := 100
+			if nodeData["optional"] == false {
+				s = fmt.Sprintf("%s\n", s)
+			} else {
+				s = fmt.Sprintf("%s%s%s\n", s, getPaddedString(totalPadding-length), "# OPTIONAL")
+			}
+
 			WriteContents(file, s)
 
 			if nodeData["type"] == "rsa_cert_credentials" {
