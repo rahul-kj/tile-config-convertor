@@ -40,7 +40,7 @@ func (r Resources) ProcessData() {
 		os.Exit(1)
 	}
 
-	s := "product_resources: |\n"
+	s := "resource-config: |\n"
 	WriteContents(file, s)
 
 	for _, item := range resources {
@@ -56,7 +56,7 @@ func (r Resources) ProcessData() {
 			WriteContents(file, s)
 
 			if _, ok := value["persistent_disk_mb"]; ok {
-				s := fmt.Sprintf("    persistent_disk:\n      size_mb: %v\n", value["persistent_disk_best_fit"])
+				s := fmt.Sprintf("    persistent_disk:\n      size_mb: \"%v\"\n", value["persistent_disk_best_fit"])
 				WriteContents(file, s)
 			}
 		}

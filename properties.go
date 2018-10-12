@@ -49,7 +49,7 @@ func (p Properties) ProcessData() {
 	}
 	sort.Strings(keys)
 
-	s := "product_properties: |\n"
+	s := "product-properties: |\n"
 	WriteContents(file, s)
 
 	// To perform the opertion you want
