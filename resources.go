@@ -40,7 +40,7 @@ func (r Resources) ProcessData() {
 		os.Exit(1)
 	}
 
-	s := "resource-config: |\n"
+	s := "resource-config:\n"
 	WriteContents(file, s)
 
 	for _, item := range resources {
