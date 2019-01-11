@@ -4,14 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"flag"
 )
 
 type Resources struct {
-	rawData    []byte
-	outputFile string
+	inputFile    	string
+	outputFile 		string
 }
 
 func (r Resources) ProcessData() {
+
+	if r.inputFile == "" || r.outputFile == "" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	rawData := GetRaw(r.inputFile)
+
 	var file *os.File
 	if !FileExists(r.outputFile) {
 		file = CreateFile(r.outputFile)
@@ -21,7 +30,7 @@ func (r Resources) ProcessData() {
 
 	// Generic interface to read the file into
 	var f interface{}
-	err := json.Unmarshal(r.rawData, &f)
+	err := json.Unmarshal(rawData, &f)
 	if err != nil {
 		fmt.Println("Error parsing JSON: ", err)
 	}

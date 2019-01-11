@@ -7,14 +7,23 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"flag"
 )
 
 type Properties struct {
-	rawData    []byte
-	outputFile string
+	inputFile    	string
+	outputFile 		string
 }
 
 func (p Properties) ProcessData() {
+
+	if p.inputFile == "" || p.outputFile == "" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	rawData := GetRaw(p.inputFile)
+
 	var file *os.File
 	if !FileExists(p.outputFile) {
 		file = CreateFile(p.outputFile)
@@ -24,7 +33,7 @@ func (p Properties) ProcessData() {
 
 	// Generic interface to read the file into
 	var f interface{}
-	err1 := json.Unmarshal(p.rawData, &f)
+	err1 := json.Unmarshal(rawData, &f)
 	if err1 != nil {
 		fmt.Println("Error parsing JSON: ", err1)
 	}
