@@ -3,16 +3,17 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"reflect"
 	"sort"
-	"flag"
+	"strings"
 )
 
 type Properties struct {
-	inputFile    	string
-	outputFile 		string
+	inputFile  string
+	outputFile string
 }
 
 func (p Properties) ProcessData() {
@@ -25,11 +26,16 @@ func (p Properties) ProcessData() {
 	rawData := GetRaw(p.inputFile)
 
 	var file *os.File
+	var varFile *os.File
 	if !FileExists(p.outputFile) {
 		file = CreateFile(p.outputFile)
+
+		var varsFile = strings.Replace(p.outputFile, ".", "_vars.", 1)
+		varFile = CreateFile(varsFile)
 	}
 
 	defer file.Close()
+	defer varFile.Close()
 
 	// Generic interface to read the file into
 	var f interface{}
@@ -79,6 +85,8 @@ func (p Properties) ProcessData() {
 
 			WriteContents(file, s)
 
+			var kv = strings.ReplaceAll(strings.ReplaceAll(strings.Replace(k, ".properties.", "", 1), ".", "_"), "-", "_")
+
 			if nodeData["type"] == "rsa_cert_credentials" {
 				var buf bytes.Buffer
 				buf = handleCert(4, "value: \n", buf)
@@ -104,31 +112,43 @@ func (p Properties) ProcessData() {
 				WriteContents(file, buf.String())
 			} else if nodeData["type"] == "integer" {
 				var s string
+				var v string
 				value := nodeData["value"]
 				switch value.(type) {
 				case float64:
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), int(value.(float64)))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: %v\n", kv, int(value.(float64)))
 				case float32:
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), int(value.(float32)))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: %v\n", kv, int(value.(float32)))
 				case int64:
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value.(int64))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: %v\n", kv, value.(int64))
 				case int32:
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value.(int32))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: %v\n", kv, value.(int32))
 				case int:
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value.(int32))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: %v\n", kv, value.(int32))
 				default:
 					s = fmt.Sprintf("%svalue: \n", getPaddedString(4))
+					v = fmt.Sprintf("%s: \n", kv)
 				}
 				WriteContents(file, s)
+				WriteContents(varFile, v)
 			} else {
 				var s string
+				var v string
 				value := nodeData["value"]
 				if value != nil {
-					s = fmt.Sprintf("%svalue: %v\n", getPaddedString(4), value)
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: %v\n", kv, value)
 				} else {
-					s = fmt.Sprintf("%svalue: \n", getPaddedString(4))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+					v = fmt.Sprintf("%s: \n", kv)
 				}
 				WriteContents(file, s)
+				WriteContents(varFile, v)
 			}
 		}
 	}
